@@ -213,7 +213,7 @@ export function webBundles(info: BuildInfo, run: Runner): Bundle[] {
         vendor(join(info.rootDir, "browser/monaco.ts"), "index.js"),
         web("browser.js", {}, withCss),
         web("extension.js", { IS_EXTENSION: true }, withCss),
-        web("Vencord.user.js", { IS_USERSCRIPT: true, window: "unsafeWindow" }, base => ({
+        web("Vencord.user.js", { IS_USERSCRIPT: true }, base => ({
             ...base,
             // Userscripts can't ship a stylesheet, so the CSS rides along as a string the runtime injects.
             plugins: [
@@ -225,6 +225,8 @@ export function webBundles(info: BuildInfo, run: Runner): Bundle[] {
             ],
             transform: {
                 ...base.transform,
+                // A raw expression, not a JSON value like the other defines.
+                define: { ...base.transform!.define, window: "unsafeWindow" },
                 inject: { ...base.transform!.inject, fetch: [join(info.rootDir, "browser/GMPolyfill.js"), "fetch"] }
             },
             output: {
