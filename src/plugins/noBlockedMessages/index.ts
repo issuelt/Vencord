@@ -1,20 +1,8 @@
 /*
- * Vencord, a modification for Discord's desktop app
+ * Vencord, a Discord client mod
  * Copyright (c) 2022 Vendicated and contributors
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
 import { definePluginSettings, migratePluginSetting } from "@api/Settings";
 import { Devs } from "@utils/constants";
@@ -25,8 +13,7 @@ import { Message } from "@vencord/discord-types";
 import { i18n, RelationshipStore } from "@webpack/common";
 
 interface MessageDeleteProps {
-    // Internal intl message for BLOCKED_MESSAGE_COUNT
-    collapsedReason: () => any;
+    collapsedReason: string;
 }
 
 // Remove this migration once enough time has passed
@@ -58,8 +45,8 @@ export default definePlugin({
             find: ".__invalid_blocked,",
             replacement: [
                 {
-                    match: /let{messages:\i,[^}]*?collapsedReason[^}]*}/,
-                    replace: "if($self.shouldHide(arguments[0]))return null;$&"
+                    match: /function\((\i)\)\{(?=let\{messages:\i,channel:\i,compact:)/,
+                    replace: "$&if($self.shouldHide($1))return null;"
                 }
             ]
         },
@@ -87,7 +74,10 @@ export default definePlugin({
 
     shouldIgnoreUser(userId: string) {
         try {
-            return RelationshipStore.isBlocked(userId) || (settings.store.applyToIgnoredUsers && RelationshipStore.isIgnored(userId));
+            return (
+                RelationshipStore.isBlocked(userId) ||
+                (settings.store.applyToIgnoredUsers && RelationshipStore.isIgnored(userId))
+            );
         } catch (e) {
             new Logger("NoBlockedMessages").error("Failed to check if user is blocked or ignored:", e);
             return false;
@@ -100,8 +90,7 @@ export default definePlugin({
 
     shouldHide(props: MessageDeleteProps): boolean {
         try {
-            const collapsedReason = props.collapsedReason();
-            const is = (key: string) => collapsedReason === i18n.t[runtimeHashMessageKey(key)]();
+            const is = (key: string) => props.collapsedReason === i18n.t[runtimeHashMessageKey(key)];
 
             return is("BLOCKED_MESSAGE_COUNT") || (settings.store.applyToIgnoredUsers && is("IGNORED_MESSAGE_COUNT"));
         } catch (e) {

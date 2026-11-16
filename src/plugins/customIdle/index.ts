@@ -37,11 +37,11 @@ export default definePlugin({
             find: 'type:"IDLE",idle:',
             replacement: [
                 {
-                    match: /(?<=Date\.now\(\)-\i>)\i\.\i\|\|/,
+                    match: /(?<=Date\.now\(\)-\i>)(?:6e5|\i\.\i)\|\|/,
                     replace: "$self.getIdleTimeout()||"
                 },
                 {
-                    match: /Math\.min\((\i\*\i\.\i\.\i\.SECOND),\i\.\i\)/,
+                    match: /Math\.min\((\i\*\i\.\i(?:\.Millis)?\.SECOND),(?:6e5|\i\.\i)\)/,
                     replace: "$1" // Decouple idle from afk (phone notifications will remain at user setting or 10 min maximum)
                 },
                 {
@@ -65,7 +65,8 @@ export default definePlugin({
         if (
             currentNotice?.[1] === backOnlineMessage ||
             noticesQueue.some(([, noticeMessage]) => noticeMessage === backOnlineMessage)
-        ) return;
+        )
+            return;
 
         showNotice(backOnlineMessage, "Exit idle", () => {
             popNotice();
@@ -76,7 +77,8 @@ export default definePlugin({
         });
     },
 
-    getIdleTimeout() { // milliseconds, default is 6e5
+    getIdleTimeout() {
+        // milliseconds, default is 6e5
         const { idleTimeout } = settings.store;
         return idleTimeout === 0 ? Infinity : idleTimeout * 60000;
     }

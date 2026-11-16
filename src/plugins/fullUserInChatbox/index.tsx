@@ -31,25 +31,30 @@ export default definePlugin({
             // Same find as RoleColorEverywhere chatbox mentions
             find: '"text":"locked"',
             replacement: {
-                match: /(hidePersonalInformation\).+?)(if\(null!=\i\){.+?return \i)(?=})/,
+                match: /(hidePersonalInformation\).+?;)(if\(null!=\i\){.+?}return\(0,\i\.jsx\)\(\i,\{id:\i,name:\i,targetRef:\i,onContextMenu:\i}\))(?=})/,
                 replace: "$1return $self.UserMentionComponent({...arguments[0],originalComponent:()=>{$2}});"
             }
         }
     ],
 
-    UserMentionComponent: ErrorBoundary.wrap((props: UserMentionComponentProps) => {
-        const user = useStateFromStores([UserStore], () => UserStore.getUser(props.id));
-        if (user == null) {
-            return props.originalComponent();
-        }
+    UserMentionComponent: ErrorBoundary.wrap(
+        (props: UserMentionComponentProps) => {
+            const user = useStateFromStores([UserStore], () => UserStore.getUser(props.id));
+            if (user == null) {
+                return props.originalComponent();
+            }
 
-        return <UserMentionComponent
-            // This seems to be constant
-            className="mention"
-            userId={props.id}
-            channelId={props.channelId}
-        />;
-    }, {
-        fallback: ({ wrappedProps: { originalComponent } }) => originalComponent()
-    })
+            return (
+                <UserMentionComponent
+                    // This seems to be constant
+                    className="mention"
+                    userId={props.id}
+                    channelId={props.channelId}
+                />
+            );
+        },
+        {
+            fallback: ({ wrappedProps: { originalComponent } }) => originalComponent()
+        }
+    )
 });
