@@ -9,7 +9,7 @@
 // `vp run buildReporter`) injected, and reports every patch, webpack find and plugin start that
 // failed. No Discord account is needed. Prints a Markdown report and exits 1 if anything broke.
 //
-//   node scripts/generateReport.ts [--branch stable|canary|both]
+//   node scripts/generateReport.ts [--branch stable|ptb|canary|both]
 //
 // CHROMIUM_BIN picks the browser; otherwise Chrome Headless Shell is downloaded into
 // node_modules/.cache. WEBHOOK_URL (and optional WEBHOOK_SECRET) also posts the report to Discord.
@@ -42,7 +42,9 @@ import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import pup, { type ConsoleMessage, type JSHandle } from "puppeteer-core";
 
-type Branch = "stable" | "canary";
+type Branch = "stable" | "ptb" | "canary";
+
+const BRANCH_NAMES = { stable: "Stable", ptb: "PTB", canary: "Canary" } satisfies Record<Branch, string>;
 
 interface PatchInfo {
     readonly plugin: string;
@@ -267,9 +269,7 @@ const runBranch = Effect.fn("runBranch")(function* (branch: Branch, chrome: stri
     yield* Effect.promise(() =>
         page.evaluateOnNewDocument(`if (location.host.endsWith("discord.com")) {\n${script};\n}`)
     );
-    yield* Effect.promise(() =>
-        page.goto(branch === "canary" ? "https://canary.discord.com/login" : "https://discord.com/login")
-    );
+    yield* Effect.promise(() => page.goto(`https://${branch === "stable" ? "" : `${branch}.`}discord.com/login`));
 
     yield* Fiber.join(finished).pipe(
         Effect.timeoutOrElse({
@@ -291,7 +291,8 @@ const codeBlock = (s: string, indentation = 0, isDiscord = false) => {
 };
 
 function toMarkdown(report: Report) {
-    const lines = [`# Vencord Report${report.branch === "canary" ? " (Canary)" : ""}`, ""];
+    const suffix = report.branch === "stable" ? "" : ` (${BRANCH_NAMES[report.branch]})`;
+    const lines = [`# Vencord Report${suffix}`, ""];
     const section = (title: string, items: string[]) => lines.push(`## ${title}`, ...items, "");
 
     section(
@@ -346,7 +347,7 @@ function toWebhookBody(report: Report) {
     const embeds = [
         {
             author: {
-                name: `Discord ${canary ? "Canary" : "Stable"} (${report.meta.buildNumber})`,
+                name: `Discord ${BRANCH_NAMES[report.branch]} (${report.meta.buildNumber})`,
                 url: `https://nelly.tools/builds/app/${report.meta.buildHash}`,
                 icon_url: canary
                     ? "https://cdn.discordapp.com/emojis/1252721945699549327.png?size=128"
@@ -380,7 +381,8 @@ function toWebhookBody(report: Report) {
             color: 0x00ff00
         });
 
-    return JSON.stringify({ username: `Vencord Reporter${canary ? " (Canary)" : ""}`, embeds });
+    const suffix = report.branch === "stable" ? "" : ` (${BRANCH_NAMES[report.branch]})`;
+    return JSON.stringify({ username: `Vencord Reporter${suffix}`, embeds });
 }
 
 /** Posts to WEBHOOK_URL. WEBHOOK_SECRET signs the body the way GitHub signs webhook deliveries. */
@@ -404,8 +406,8 @@ const postWebhook = Effect.fn("postWebhook")(function* (url: string, report: Rep
 const report = Command.make(
     "report",
     {
-        branch: Flag.Literals("branch", ["stable", "canary", "both"]).pipe(
-            Flag.withDescription("Discord branch to test against"),
+        branch: Flag.Literals("branch", ["stable", "ptb", "canary", "both"]).pipe(
+            Flag.withDescription("Discord branch to test against; both runs stable and canary"),
             Flag.withDefault("both")
         )
     },

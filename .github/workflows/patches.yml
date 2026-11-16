@@ -20,7 +20,7 @@ on:
             branch:
                 type: choice
                 description: Discord branch to test against
-                options: [both, stable, canary]
+                options: [both, stable, ptb, canary]
                 default: both
 
 permissions:
