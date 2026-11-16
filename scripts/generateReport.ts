@@ -8,6 +8,7 @@
 // Loads Discord's login page in headless Chrome with the reporter build (dist/browser.js from
 // `vp run buildReporter`) injected, and reports every patch, webpack find and plugin start that
 // failed. No Discord account is needed. Prints a Markdown report and exits 1 if anything broke.
+// Timing-only failures are confirmed in a fresh browser; warnings from both runs stay in the report.
 //
 //   node scripts/generateReport.ts [--branch stable|ptb|canary|both]
 //
@@ -42,29 +43,9 @@ import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import pup, { type ConsoleMessage, type JSHandle } from "puppeteer-core";
 
-type Branch = "stable" | "ptb" | "canary";
+import { type Branch, hasFunctionalFailures, hasReportFailures, type PatchInfo, type Report } from "./lib/reports.ts";
 
 const BRANCH_NAMES = { stable: "Stable", ptb: "PTB", canary: "Canary" } satisfies Record<Branch, string>;
-
-interface PatchInfo {
-    readonly plugin: string;
-    readonly type: string;
-    readonly id: string;
-    readonly match: string;
-    readonly error?: string;
-}
-
-/** What one run against one Discord branch found. */
-interface Report {
-    readonly branch: Branch;
-    meta: { buildNumber: string; buildHash: string };
-    readonly badPatches: PatchInfo[];
-    readonly slowPatches: PatchInfo[];
-    readonly badStarts: { plugin: string; error: string }[];
-    readonly badWebpackFinds: string[];
-    readonly otherErrors: string[];
-    readonly ignoredErrors: string[];
-}
 
 export class ReporterError extends Schema.TaggedError<ReporterError>()("ReporterError", {
     branch: Schema.String,
@@ -83,9 +64,6 @@ const IGNORED_DISCORD_ERRORS: Array<string | RegExp> = [
     "search for 'name' in undefined",
     "Attempting to set fast connect zstd when unsupported"
 ];
-
-const isBroken = (report: Report) =>
-    report.badPatches.length + report.slowPatches.length + report.badStarts.length + report.badWebpackFinds.length > 0;
 
 /** Uses CHROMIUM_BIN, or downloads Chrome Headless Shell into node_modules/.cache once. */
 const resolveChrome = Effect.fn("resolveChrome")(function* (rootDir: string) {
@@ -432,13 +410,30 @@ const report = Command.make(
         });
 
         const webhook = (yield* Config.option(Config.String("WEBHOOK_URL"))).pipe(Option.filter(url => url.length > 0));
+        let failed = false;
         for (const r of reports) {
             yield* Console.log(toMarkdown(r));
             if (Option.isSome(webhook)) yield* postWebhook(webhook.value, r);
+
+            let confirmation: Report | undefined;
+            if (r.slowPatches.length > 0 && !hasFunctionalFailures(r)) {
+                yield* Effect.logWarning(
+                    `Rechecking ${r.branch} in a fresh browser; retaining both reports' timing warnings.`
+                );
+                confirmation = yield* runBranch(r.branch, chrome, script);
+                yield* Console.log(toMarkdown(confirmation));
+                if (Option.isSome(webhook)) yield* postWebhook(webhook.value, confirmation);
+                if (!hasReportFailures(r, confirmation))
+                    yield* Effect.logWarning(`${r.branch}: no slow patch was reproduced in the confirmation run.`);
+            }
+            failed = hasReportFailures(r, confirmation) || failed;
         }
 
-        if (reports.some(isBroken))
-            return yield* new ReporterError({ branch, reason: "found broken patches, finds or plugins" });
+        if (failed)
+            return yield* new ReporterError({
+                branch,
+                reason: "found broken patches, finds, plugins or repeated slow patches"
+            });
     })
 );
 
