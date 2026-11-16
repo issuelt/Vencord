@@ -426,8 +426,9 @@ const report = Command.make(
         const chrome = yield* resolveChrome(rootDir);
 
         const branches: Branch[] = branch === "both" ? ["stable", "canary"] : [branch];
+        // Keep browsers from competing for CPU while measuring patch timings.
         const reports = yield* Effect.forEach(branches, b => runBranch(b, chrome, script), {
-            concurrency: "unbounded"
+            concurrency: 1
         });
 
         const webhook = (yield* Config.option(Config.String("WEBHOOK_URL"))).pipe(Option.filter(url => url.length > 0));
