@@ -227,30 +227,30 @@ export default definePlugin({
 
     patches: [
         {
-            find: "canUseCustomStickersEverywhere:",
+            find: "ProductCatalog.tsx",
             replacement: [
                 {
-                    match: /(?<=canUseCustomStickersEverywhere:function\(\i\)\{)/,
-                    replace: "return true;",
+                    match: /function \i\(\i\)\{(?=return \i\(\i\.\i\.STICKERS_EVERYWHERE,)/,
+                    replace: "$&return true;",
                     predicate: () => settings.store.enableStickerBypass
                 },
                 {
-                    match: /(?<=canUseHighVideoUploadQuality:function\(\i\)\{)/,
-                    replace: "return true;",
+                    match: /function \i\(\i\)\{(?=return \i\(\i\.\i\.INCREASED_VIDEO_UPLOAD_QUALITY,)/,
+                    replace: "$&return true;",
                     predicate: () => settings.store.enableStreamQualityBypass
                 },
                 {
-                    match: /(?<=canStreamQuality:function\(\i,\i\)\{)/,
-                    replace: "return true;",
+                    match: /function \i\(\i,\i\)\{(?=return"high"===\i\?\i\(\i\.\i\.STREAM_HIGH_QUALITY,)/,
+                    replace: "$&return true;",
                     predicate: () => settings.store.enableStreamQualityBypass
                 },
                 {
-                    match: /(?<=canUseClientThemes:function\(\i\)\{)/,
-                    replace: "return true;"
+                    match: /function \i\(\i\)\{(?=return \i\(\i\.\i\.CLIENT_THEMES,)/,
+                    replace: "$&return true;"
                 },
                 {
-                    match: /(?<=canUsePremiumAppIcons:function\(\i\)\{)/,
-                    replace: "return true;"
+                    match: /function \i\(\i\)\{(?=return \i\(\i\.\i\.APP_ICONS,)/,
+                    replace: "$&return true;"
                 }
             ]
         },
@@ -299,8 +299,8 @@ export default definePlugin({
         {
             find: ".getUserIsAdmin(",
             replacement: {
-                match: /(function \i\(\i,\i)\){(.{0,250}.getUserIsAdmin\(.+?return!1})/,
-                replace: (_, rest1, rest2) => `${rest1},fakeNitroOriginal){if(!fakeNitroOriginal)return false;${rest2}`
+                match: /(function(?: \i)?\(\i,\i)\)\{(?=.{0,250}\.getUserIsAdmin\()/,
+                replace: "$1,fakeNitroOriginal){if(!fakeNitroOriginal)return false;"
             }
         },
         // Make stickers always available
@@ -340,7 +340,7 @@ export default definePlugin({
         {
             find: ",updateTheme(",
             replacement: {
-                match: /(function \i\(\i\){let{backgroundGradientPresetId:(\i).+?)(\i\.\i\.updateAsync.+?theme=(.+?),.+?},\i\))/,
+                match: /(function(?: \i)?\(\i\){let{backgroundGradientPresetId:(\i).+?)(\i\.\i\.updateAsync.+?theme=(.+?),.+?},\i\))/,
                 replace: (_, rest, backgroundGradientPresetId, originalCall, theme) =>
                     `${rest}$self.handleGradientThemeSelect(${backgroundGradientPresetId},${theme},()=>${originalCall});`
             }

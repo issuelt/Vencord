@@ -98,14 +98,14 @@ export default definePlugin({
         {
             find: "#{intl::PAUSE_VOICE_MESSAGE_A11Y_LABEL}",
             replacement: {
-                match: /(?<=\i=)(?=\i\.memo\(.{0,50}?=1,onVolumeChange:[^}]+?waveform:[^}]+?playbackCacheKey:)/,
-                replace: "$self.VoiceMessage="
+                match: /function (\i)\(\i\)\{(?=var \i;let\{playback:\i,durationSecs:)/,
+                replace: "$self.VoiceMessage=$1;$&"
             }
         }
     ],
 
-    set VoiceMessage(value: ComponentType<VoiceMessageProps>) {
-        VoiceMessage = value;
+    set VoiceMessage(Component: ComponentType<{ playback: VoiceMessageProps; durationSecs: number }>) {
+        VoiceMessage = props => <Component playback={props} durationSecs={0} />;
     },
 
     contextMenus: {

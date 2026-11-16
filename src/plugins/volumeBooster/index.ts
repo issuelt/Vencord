@@ -47,7 +47,7 @@ export default definePlugin({
         {
             find: "#{intl::USER_VOLUME}",
             replacement: {
-                match: /(?<=maxValue:)\i\.isPlatformEmbedded\?(\i\.\i):\i\.\i(?=,)/,
+                match: /(?<=maxValue:)\i\.isPlatformEmbedded\?(\d+|\i\.\i):(?:\d+|\i\.\i)(?=,)/,
                 replace: (_, higherMaxVolume) => `${higherMaxVolume}*$self.settings.store.multiplier`
             }
         },

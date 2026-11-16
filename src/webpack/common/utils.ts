@@ -69,7 +69,7 @@ waitFor("parseTopic", m => (Parser = m));
 export let Alerts: t.Alerts;
 waitFor(["show", "close"], m => (Alerts = m));
 
-export const showToast: t.showToast = findByCodeLazy(".currentToastMap.has(");
+export const showToast: t.showToast = findByCodeLazy("queuedToastsMap", "toastKey");
 
 export const UserUtils = {
     getUser: findByCodeLazy(".USER(")

@@ -54,18 +54,18 @@ export default definePlugin({
         },
         {
             // Gradient roles in member list
-            find: '="left",className:',
+            find: /displayNameStylesFont:.*gradientGlowClassname:/,
             replacement: {
-                match: /,animateGradient:/,
-                replace: ",animateGradient:!0,_oldAnimateGradient:"
+                match: /(?<=animateGradient:)\i\|\|\i\|\|\i\?\.animate/,
+                replace: "!0"
             }
         },
         {
             // Nameplates
             find: ".MINI_PREVIEW,[",
             replacement: {
-                match: /animate:\i,loop:/,
-                replace: "animate:true,loop:true,_loop:"
+                match: /animate:\i,loop:(?:!0===\i&&!0===\i|\i)(?=[,}])(?=[^{}]*}\))/g,
+                replace: "animate:true,loop:true"
             }
         }
     ]

@@ -17,7 +17,7 @@ export default definePlugin({
             find: '"NoticeStore"',
             replacement: [
                 {
-                    match: /(?<=!1;)\i=null;(?=.{0,80}getPremiumSubscription\(\))/g,
+                    match: /\i=null;(?=let \i=\i\.\i\.getCurrentUser\(\);.{0,80}getPremiumSubscription\(\))/,
                     replace: "if(Vencord.Api.Notices.currentNotice)return false;$&"
                 },
                 {

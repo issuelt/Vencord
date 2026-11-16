@@ -28,10 +28,10 @@ export default definePlugin({
 
     patches: [
         {
-            find: "codeBlock:{react(",
+            find: "codeBlock:{react:(",
             replacement: {
-                match: /codeBlock:\{react\((\i),(\i),(\i)\)\{/,
-                replace: "$&return $self.renderHighlighter($1,$2,$3);"
+                match: /codeBlock:\{react:\((\i),(\i),(\i)\)=>.+?\},\3\.key\)/,
+                replace: "codeBlock:{react:($1,$2,$3)=>$self.renderHighlighter($1)"
             }
         },
         {

@@ -13,8 +13,7 @@ import { Message } from "@vencord/discord-types";
 import { i18n, RelationshipStore } from "@webpack/common";
 
 interface MessageDeleteProps {
-    // Internal intl message for BLOCKED_MESSAGE_COUNT
-    collapsedReason: () => any;
+    collapsedReason: string;
 }
 
 // Remove this migration once enough time has passed
@@ -46,8 +45,8 @@ export default definePlugin({
             find: ".__invalid_blocked,",
             replacement: [
                 {
-                    match: /let{messages:\i,[^}]*?collapsedReason[^}]*}/,
-                    replace: "if($self.shouldHide(arguments[0]))return null;$&"
+                    match: /function\((\i)\)\{(?=let\{messages:\i,channel:\i,compact:)/,
+                    replace: "$&if($self.shouldHide($1))return null;"
                 }
             ]
         },
@@ -91,8 +90,7 @@ export default definePlugin({
 
     shouldHide(props: MessageDeleteProps): boolean {
         try {
-            const collapsedReason = props.collapsedReason();
-            const is = (key: string) => collapsedReason === i18n.t[runtimeHashMessageKey(key)]();
+            const is = (key: string) => props.collapsedReason === i18n.t[runtimeHashMessageKey(key)];
 
             return is("BLOCKED_MESSAGE_COUNT") || (settings.store.applyToIgnoredUsers && is("IGNORED_MESSAGE_COUNT"));
         } catch (e) {

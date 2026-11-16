@@ -31,7 +31,7 @@ export default definePlugin({
             // Same find as RoleColorEverywhere chatbox mentions
             find: '"text":"locked"',
             replacement: {
-                match: /(hidePersonalInformation\).+?)(if\(null!=\i\){.+?return \i)(?=})/,
+                match: /(hidePersonalInformation\).+?;)(if\(null!=\i\){.+?}return\(0,\i\.jsx\)\(\i,\{id:\i,name:\i,targetRef:\i,onContextMenu:\i}\))(?=})/,
                 replace: "$1return $self.UserMentionComponent({...arguments[0],originalComponent:()=>{$2}});"
             }
         }

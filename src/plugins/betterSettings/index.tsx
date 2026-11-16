@@ -139,11 +139,11 @@ export default definePlugin({
             predicate: () => settings.store.disableFade
         },
         {
-            // Disable initial and exit delay for settings menu
-            find: "headerId:void 0,headerIdIsManaged:!1",
+            // Disable the legacy modal transition.
+            find: ".MODAL_ROOT_LEGACY,properties:",
             replacement: {
-                match: /let (\i)=300/,
-                replace: "let $1=0"
+                match: /(?<=config:\{duration:)\d+(?=,easing:)/,
+                replace: "0"
             },
             predicate: () => settings.store.disableFade
         },
