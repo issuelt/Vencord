@@ -8,7 +8,7 @@ import { Logger } from "@utils/Logger";
 import { canonicalizeMatch } from "@utils/patches";
 import { ModuleFactory } from "@vencord/discord-types/webpack";
 import * as Webpack from "@webpack";
-import { wreq } from "@webpack";
+import { isWorkerSource, wreq } from "@webpack";
 import { AnyModuleFactory } from "@webpack/types";
 import pLimit from "p-limit";
 
@@ -42,7 +42,6 @@ export async function loadLazyChunks() {
 
     const queue = pLimit(50);
     const workerAssetCache = new Map<string, Promise<boolean>>();
-    const WORKER_ASSET_REGEX = /importScripts\(|self\.postMessage/;
 
     async function isWorkerAsset(url: string, useQueue: boolean = true): Promise<boolean> {
         if (workerAssetCache.has(url)) {
@@ -52,7 +51,7 @@ export async function loadLazyChunks() {
         const doFetch = () => {
             return fetch(url)
                 .then(r => r.text())
-                .then(t => WORKER_ASSET_REGEX.test(t));
+                .then(isWorkerSource);
         };
 
         const res = useQueue ? queue(doFetch) : doFetch();
@@ -100,14 +99,7 @@ export async function loadLazyChunks() {
 
             await Promise.all(
                 Array.from(lazyChunks).map(async ([, rawChunkIds, entryPoint]) => {
-                    const chunkIds =
-                        rawChunkIds
-                            ?.matchAll(Webpack.ChunkIdsRegex)
-                            .map(m => {
-                                const numChunkId = Number(m[1]);
-                                return Number.isNaN(numChunkId) ? m[1] : String(numChunkId);
-                            })
-                            .toArray() ?? [];
+                    const chunkIds = Webpack.parseChunkIds(rawChunkIds ?? "");
 
                     if (chunkIds.length === 0) {
                         return;
@@ -208,7 +200,10 @@ export async function loadLazyChunks() {
         const chunksMap = getWebpackChunkMap();
         if (!chunksMap) throw new Error("Failed to get chunk map");
 
-        const allChunks = Object.keys(chunksMap);
+        const allChunks = Object.keys(chunksMap).map(id => {
+            const numericId = Number(id);
+            return Number.isNaN(numericId) ? id : numericId;
+        });
         if (allChunks.length === 0) throw new Error("Failed to get all chunks");
 
         // Chunks which our regex could not catch to load

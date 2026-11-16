@@ -13,6 +13,7 @@ import { escapeRegExp } from "@utils/text";
 import type { FluxStore } from "@vencord/discord-types";
 import type { ModuleExports, ModuleFactory, WebpackRequire } from "@vencord/discord-types/webpack";
 
+import { parseChunkIds } from "./chunks";
 import type { AnyModuleFactory, AnyWebpackRequire } from "./types";
 
 const logger = new Logger("Webpack");
@@ -697,7 +698,8 @@ export function mapMangledModuleLazy<S extends string>(
 
 export const DefaultExtractAndLoadChunksRegex =
     /(?:(?:Promise\.all\(\[)?((?:\i\.e\("?[^)]+?"?\),?)+?)(?:\]\))?|Promise\.resolve\(\))\.then\(\i\.bind\(\i,"?([^)]+?)"?\)\)/;
-export const ChunkIdsRegex = /\("([^"]+?)"\)/g;
+export { parseChunkIds };
+export { isWorkerSource } from "./chunks";
 
 /**
  * Extract and load chunks using their entry point
@@ -748,10 +750,7 @@ export async function extractAndLoadChunks(code: CodeFilter, matcher = DefaultEx
     const entryPoint = Number.isNaN(numEntryPoint) ? entryPointId : String(numEntryPoint);
 
     if (rawChunkIds) {
-        const chunkIds = Array.from(rawChunkIds.matchAll(ChunkIdsRegex)).map(m => {
-            const numChunkId = Number(m[1]);
-            return Number.isNaN(numChunkId) ? m[1] : String(numChunkId);
-        });
+        const chunkIds = parseChunkIds(rawChunkIds);
 
         await Promise.all(chunkIds.map(id => wreq.e(id)));
     }

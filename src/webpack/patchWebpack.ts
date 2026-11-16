@@ -433,6 +433,8 @@ function runFactoryWithWrap(
     }
 
     let [module, exports, require] = argArray;
+    // Newer runtimes omit this flag. Track it so finders skip incomplete or failed factories.
+    module.loaded = false;
 
     // Restore the original factory in all the module factories objects, discarding our proxy and allowing it to be garbage collected
     defineInWebpackInstances(module.id, originalFactory);
@@ -474,9 +476,10 @@ function runFactoryWithWrap(
         }
 
         logger.error("Error in patched module factory:\n", err);
-        return originalFactory.apply(thisArg, argArray);
+        factoryReturn = originalFactory.apply(thisArg, argArray);
     }
 
+    module.loaded = true;
     exports = module.exports;
 
     if (typeof require === "function" && require.c) {

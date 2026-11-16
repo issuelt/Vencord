@@ -8,7 +8,8 @@ export type ModuleExports = any;
 
 export type Module = {
     id: PropertyKey;
-    loaded: boolean;
+    /** Vencord tracks factory completion on runtimes that omit this flag. */
+    loaded?: boolean;
     exports: ModuleExports;
 };
 
